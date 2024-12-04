@@ -107,15 +107,15 @@ export default function MetricsDashboard() {
 
   const isMobile = width < 768;
   const t = translations[lang];
-  const filteredData = useMemo(() => {
-    // Фильтрация данных, если необходимо
-    return data;
-  }, [data]);
-
   const [activeMetric, setActiveMetric] = useState('leads');
   const [startIdx, setStartIdx] = useState(0);
-  const [endIdx, setEndIdx] = useState(0);
+  const [endIdx, setEndIdx] = useState(data.length - 1);
   const [showAverage, setShowAverage] = useState(true);
+
+  const filteredData = useMemo(() => {
+    // Фильтрация данных на основе выбранных индексов
+    return data.slice(startIdx, endIdx + 1);
+  }, [data, startIdx, endIdx]);
 
   const metrics = {
     leads: { 
