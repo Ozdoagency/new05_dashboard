@@ -14,16 +14,7 @@ import {
   Wallet,
   UserCog 
 } from 'lucide-react';
-
-const mockData = [
-  { date: '07.10', actual: 4240.85, leads: 12, leadCost: 353.40, cr: 100, qualified: 12, qualCost: 353.40 },
-  { date: '08.10', actual: 4188.93, leads: 11, leadCost: 380.81, cr: 100, qualified: 11, qualCost: 380.81 },
-  { date: '09.10', actual: 4005.29, leads: 8, leadCost: 500.66, cr: 88, qualified: 7, qualCost: 572.18 },
-  { date: '10.10', actual: 5731.62, leads: 21, leadCost: 272.93, cr: 86, qualified: 18, qualCost: 318.42 },
-  { date: '11.10', actual: 3867.01, leads: 16, leadCost: 241.69, cr: 106, qualified: 17, qualCost: 227.47 },
-  { date: '12.10', actual: 3816.92, leads: 22, leadCost: 173.50, cr: 100, qualified: 22, qualCost: 173.50 },
-  { date: '13.10', actual: 4313.49, leads: 16, leadCost: 269.59, cr: 100, qualified: 16, qualCost: 269.59 }
-];
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 
 const translations = {
   en: {
@@ -82,14 +73,12 @@ const SparkLine = ({ data, dataKey, color, height = 30 }) => (
 );
 
 export default function MetricsDashboard() {
-  const [width, setWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
-  const [activeMetric, setActiveMetric] = useState('leads');
-  const [startIdx, setStartIdx] = useState(0);
-  const [endIdx, setEndIdx] = useState(mockData.length - 1);
-  const [showAverage, setShowAverage] = useState(true);
-  const [lang, setLang] = useState('ru');
+  const [data, setData] = useState([]);
+  const [width, setWidth] = useState(window.innerWidth);
+  const [lang, setLang] = useState('ru'); // Объявляем переменную lang только один раз
 
   useEffect(() => {
+    console.log("useEffect triggered");
     if (typeof window !== 'undefined') {
       const handleResize = () => setWidth(window.innerWidth);
       window.addEventListener('resize', handleResize);
@@ -97,9 +86,36 @@ export default function MetricsDashboard() {
     }
   }, []);
 
+  useEffect(() => {
+    window.handleResponse = (sheetData) => {
+      console.log("Data received from Google Sheets:", sheetData);
+      setData(sheetData);
+    };
+
+    async function fetchData() {
+      const script = document.createElement('script');
+      script.src = 'https://script.google.com/macros/s/AKfycbyCEKUF7S7bVEOtDkjKQrCJIP2P-SVOeHuW2O51kGdikeRHG_8kiU7s_-t8bl3eSkao2Q/exec?callback=handleResponse';
+      document.body.appendChild(script);
+    }
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    console.log("Data state updated:", data);
+  }, [data]);
+
   const isMobile = width < 768;
   const t = translations[lang];
-  const filteredData = useMemo(() => mockData.slice(startIdx, endIdx + 1), [startIdx, endIdx]);
+  const filteredData = useMemo(() => {
+    // Фильтрация данных, если необходимо
+    return data;
+  }, [data]);
+
+  const [activeMetric, setActiveMetric] = useState('leads');
+  const [startIdx, setStartIdx] = useState(0);
+  const [endIdx, setEndIdx] = useState(0);
+  const [showAverage, setShowAverage] = useState(true);
 
   const metrics = {
     leads: { 
@@ -145,9 +161,9 @@ export default function MetricsDashboard() {
   };
 
   return (
-    <div className="w-full space-y-4 bg-gradient-to-br from-blue-50 to-white p-2 sm:p-6 rounded-xl">
-      <div className="flex justify-between items-center">
-        <h1 className={`font-bold text-blue-900 ${isMobile ? 'text-lg' : 'text-2xl'}`}>{t.title}</h1>
+    <div className="container space-y-4 bg-gradient-to-br from-blue-50 to-white p-2 sm:p-6 rounded-xl">
+      <div className="header flex justify-between items-center">
+        <h1 className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>{t.title}</h1>
         <div className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg">
           <Globe className="w-4 h-4 text-blue-600" />
           <select 
@@ -162,7 +178,7 @@ export default function MetricsDashboard() {
         </div>
       </div>
 
-      <div className="bg-white/80 backdrop-blur shadow-lg rounded-lg">
+      <div className="card bg-white/80 backdrop-blur shadow-lg rounded-lg">
         <div className="pb-2 border-b p-4">
           <div className={`flex ${isMobile ? 'flex-col' : 'flex-row justify-between'} gap-4`}>
             <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}>
@@ -171,8 +187,8 @@ export default function MetricsDashboard() {
                 value={startIdx}
                 onChange={e => setStartIdx(Number(e.target.value))}
               >
-                {mockData.map((_, idx) => (
-                  <option key={idx} value={idx}>{mockData[idx].date}</option>
+                {data.map((_, idx) => (
+                  <option key={idx} value={idx}>{data[idx].date}</option>
                 ))}
               </select>
               <select 
@@ -180,8 +196,8 @@ export default function MetricsDashboard() {
                 value={endIdx}
                 onChange={e => setEndIdx(Number(e.target.value))}
               >
-                {mockData.map((_, idx) => (
-                  <option key={idx} value={idx}>{mockData[idx].date}</option>
+                {data.map((_, idx) => (
+                  <option key={idx} value={idx}>{data[idx].date}</option>
                 ))}
               </select>
             </div>
@@ -252,7 +268,7 @@ export default function MetricsDashboard() {
           const isPositive = change > 0;
           
           return (
-            <div key={key} className="bg-white/80 backdrop-blur hover:scale-105 transition-transform rounded-lg">
+            <div key={key} className="card bg-white/80 backdrop-blur hover:scale-105 transition-transform rounded-lg">
               <div className={isMobile ? 'p-3' : 'p-6'}>
                 <div className="flex items-center justify-between">
                   <div className="p-2 rounded-lg" style={{ backgroundColor: `${color}15` }}>
